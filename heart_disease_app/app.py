@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+from pathlib import Path
 
 st.set_page_config(
     page_title="AI CardioScan — Heart Disease Prediction",
@@ -373,8 +374,11 @@ hr { border-color: rgba(167,139,250,0.15) !important; }
 # ── Load Model ──
 @st.cache_resource
 def load_model():
-    model  = joblib.load('heart_disease_model.pkl')
-    scaler = joblib.load('scaler.pkl')
+    base_path = Path(__file__).resolve().parent
+    model_path = base_path / 'heart_disease_model.pkl'
+    scaler_path = base_path / 'scaler.pkl'
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
     return model, scaler
 
 model, scaler = load_model()
