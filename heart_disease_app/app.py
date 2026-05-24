@@ -11,6 +11,28 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+if "show_patient_form" not in st.session_state:
+    st.session_state["show_patient_form"] = True
+
+default_inputs = {
+    "age": 52,
+    "sex": 1,
+    "cp": 0,
+    "thalach": 168,
+    "exang": 0,
+    "oldpeak": 1.0,
+    "slope": 1,
+    "trestbps": 125,
+    "chol": 212,
+    "fbs": 0,
+    "restecg": 0,
+    "ca": 0,
+    "thal": 1,
+}
+for key, value in default_inputs.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap');
@@ -497,58 +519,89 @@ st.markdown("""
 <div class="divider"></div>
 """, unsafe_allow_html=True)
 
+toggle_label = "Hide Patient Input Form" if st.session_state["show_patient_form"] else "Show Patient Input Form"
+if st.button(toggle_label, key="toggle_patient_form_main"):
+    st.session_state["show_patient_form"] = not st.session_state["show_patient_form"]
 
-# ── SIDEBAR ──
-with st.sidebar:
-    st.markdown("""
-    <div class="sb-brand">
-      <div class="sb-brand-title">🫀 AI CardioScan</div>
-      <div class="sb-brand-sub">Patient Input Console</div>
-    </div>
-    """, unsafe_allow_html=True)
+predict_btn = False
+if not st.session_state["show_patient_form"]:
+    st.info("Patient input form is hidden. Click the button again to show it.")
+else:
+    with st.expander("Patient Input Form", expanded=True):
+        left, right = st.columns(2)
+        with left:
+            st.markdown('<div class="sb-section">Demographics</div>', unsafe_allow_html=True)
+            age = st.slider("Age (years)", 20, 80, 52, key="age")
+            sex = st.selectbox("Biological Sex", [1, 0], index=0,
+                               format_func=lambda x: "♂ Male" if x == 1 else "♀ Female", key="sex")
 
-    st.markdown('<div class="sb-section">Demographics</div>', unsafe_allow_html=True)
-    age = st.slider("Age (years)", 20, 80, 52)
-    sex = st.selectbox("Biological Sex", [1, 0],
-                       format_func=lambda x: "♂ Male" if x == 1 else "♀ Female")
+            st.markdown('<div class="sb-section">Cardiac Symptoms</div>', unsafe_allow_html=True)
+            cp = st.selectbox("Chest Pain Type", [0,1,2,3], index=0,
+                              format_func=lambda x: {
+                                  0:"Typical Angina",
+                                  1:"Atypical Angina",
+                                  2:"Non-anginal Pain",
+                                  3:"Asymptomatic"}[x], key="cp")
+            thalach = st.slider("Max Heart Rate (bpm)", 60, 220, 168, key="thalach")
+            exang = st.selectbox("Exercise Induced Angina", [0,1], index=0,
+                                 format_func=lambda x: "Yes" if x == 1 else "No", key="exang")
+            oldpeak = st.slider("ST Depression (Oldpeak)", 0.0, 6.0, 1.0, 0.1, key="oldpeak")
+            slope = st.selectbox("ST Segment Slope", [0,1,2], index=1,
+                                 format_func=lambda x: {
+                                     0:"Upsloping",
+                                     1:"Flat",
+                                     2:"Downsloping"}[x], key="slope")
 
-    st.markdown('<div class="sb-section">Cardiac Symptoms</div>', unsafe_allow_html=True)
-    cp = st.selectbox("Chest Pain Type", [0,1,2,3],
-                      format_func=lambda x: {
-                          0:"Typical Angina",
-                          1:"Atypical Angina",
-                          2:"Non-anginal Pain",
-                          3:"Asymptomatic"}[x])
-    thalach = st.slider("Max Heart Rate (bpm)", 60, 220, 168)
-    exang   = st.selectbox("Exercise Induced Angina", [0,1],
-                            format_func=lambda x: "Yes" if x==1 else "No")
-    oldpeak = st.slider("ST Depression (Oldpeak)", 0.0, 6.0, 1.0, 0.1)
-    slope   = st.selectbox("ST Segment Slope", [0,1,2],
-                            format_func=lambda x: {
-                                0:"Upsloping",
-                                1:"Flat",
-                                2:"Downsloping"}[x])
+        with right:
+            st.markdown('<div class="sb-section">Lab Results</div>', unsafe_allow_html=True)
+            trestbps = st.slider("Resting Blood Pressure (mmHg)", 80, 200, 125, key="trestbps")
+            chol = st.slider("Serum Cholesterol (mg/dl)", 100, 600, 212, key="chol")
+            fbs = st.selectbox("Fasting Blood Sugar > 120mg/dl", [0,1], index=0,
+                               format_func=lambda x: "Yes" if x == 1 else "No", key="fbs")
+            restecg = st.selectbox("Resting ECG Result", [0,1,2], index=0,
+                                   format_func=lambda x: {
+                                       0:"Normal",
+                                       1:"ST-T Abnormality",
+                                       2:"LV Hypertrophy"}[x], key="restecg")
 
-    st.markdown('<div class="sb-section">Lab Results</div>', unsafe_allow_html=True)
-    trestbps = st.slider("Resting Blood Pressure (mmHg)", 80, 200, 125)
-    chol     = st.slider("Serum Cholesterol (mg/dl)", 100, 600, 212)
-    fbs      = st.selectbox("Fasting Blood Sugar > 120mg/dl", [0,1],
-                             format_func=lambda x: "Yes" if x==1 else "No")
-    restecg  = st.selectbox("Resting ECG Result", [0,1,2],
-                             format_func=lambda x: {
-                                 0:"Normal",
-                                 1:"ST-T Abnormality",
-                                 2:"LV Hypertrophy"}[x])
+            st.markdown('<div class="sb-section">Advanced Tests</div>', unsafe_allow_html=True)
+            ca = st.selectbox("Major Vessels Colored (0–4)", [0,1,2,3,4], index=0, key="ca")
+            thal = st.selectbox("Thalassemia Type", [1,2,3], index=0,
+                                format_func=lambda x: {
+                                    1:"Normal",
+                                    2:"Fixed Defect",
+                                    3:"Reversible Defect"}[x], key="thal")
 
-    st.markdown('<div class="sb-section">Advanced Tests</div>', unsafe_allow_html=True)
-    ca   = st.selectbox("Major Vessels Colored (0–4)", [0,1,2,3,4])
-    thal = st.selectbox("Thalassemia Type", [1,2,3],
-                        format_func=lambda x: {
-                            1:"Normal",
-                            2:"Fixed Defect",
-                            3:"Reversible Defect"}[x])
+            predict_btn = st.button("🔍 Run AI Prediction", key="predict_btn")
 
-    predict_btn = st.button("🔍 Run AI Prediction")
+try:
+    age = st.session_state.age
+    sex = st.session_state.sex
+    cp = st.session_state.cp
+    thalach = st.session_state.thalach
+    exang = st.session_state.exang
+    oldpeak = st.session_state.oldpeak
+    slope = st.session_state.slope
+    trestbps = st.session_state.trestbps
+    chol = st.session_state.chol
+    fbs = st.session_state.fbs
+    restecg = st.session_state.restecg
+    ca = st.session_state.ca
+    thal = st.session_state.thal
+except Exception:
+    age = 52
+    sex = 1
+    cp = 0
+    thalach = 168
+    exang = 0
+    oldpeak = 1.0
+    slope = 1
+    trestbps = 125
+    chol = 212
+    fbs = 0
+    restecg = 0
+    ca = 0
+    thal = 1
 
 
 # ── MAIN ──
